@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PollsFrontend",
-    "slug": "PollsFrontend",
+    "name": "SurveysFrontend",
+    "slug": "SurveysFrontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
