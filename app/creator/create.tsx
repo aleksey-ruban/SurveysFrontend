@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { View, ScrollView, Text, TextInput, Switch, Image, TouchableOpacity, FlatList, StyleSheet } from "react-native";
-import { Picker } from "@react-native-picker/picker";
+import { View, ScrollView, Text, TextInput, Switch, Image, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from "react-native";
 import { MultipleChoiceQuestion, Question, QuestionType, RatingQuestion, SingleChoiceQuestion, Survey, TextQuestion } from "../../redux/types/surveysTypes";
 import { useDispatch } from "react-redux";
+import * as ImagePicker from "expo-image-picker";
 import { addSurvey } from "../../redux/slices/surveySlice";
 import { useRouter } from "expo-router";
+import Select from "react-select";
+import api from "@/utils/api";
 
 const CreateSurveyScreen = () => {
     const [title, setTitle] = useState("");
@@ -12,9 +14,17 @@ const CreateSurveyScreen = () => {
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [userContact, setUserContact] = useState("");
     const [questions, setQuestions] = useState<Question[]>([]);
+    const [selectedQuestion, setSelectedQuestion] = useState<null | QuestionType>(null);
 
     const dispatch = useDispatch();
     const router = useRouter();
+
+    const handleSelectChange = (selectedOption: any) => {
+        if (selectedOption) {
+            handleAddQuestion(selectedOption.value as QuestionType);
+            setSelectedQuestion(null); // Сбрасываем выбранное значение
+        }
+    };
 
     const handleAddQuestion = (type: QuestionType) => {
         let newQuestion: Question;
@@ -77,6 +87,36 @@ const CreateSurveyScreen = () => {
     };
 
     const handleSubmit = () => {
+
+        if (!title.trim()) {
+            alert('Название опроса не может быть пустым');
+            return;
+        }
+        if (!isAnonymous && !userContact?.trim()) {
+            alert('Требование контакта обязательно, если опрос не анонимный');
+            return;
+        }
+
+        for (const question of questions) {
+            if (!question.questionText.trim()) {
+                alert(`${getQuestionTypeLabel(question.type)} не может быть без вопроса`);
+                return;
+            }
+
+            if (
+                (question.type === QuestionType.SINGLE_CHOICE || question.type === QuestionType.MULTIPLE_CHOICE) &&
+                question.options.some((option) => !option.trim())
+            ) {
+                alert(`Вопрос "${question.questionText}" имеет пустой вариант`);
+                return;
+            }
+
+            if (question.type === QuestionType.RATING && !question.scale) {
+                alert(`Вопрос "${question.questionText}" должен иметь шкалу`);
+                return;
+            }
+        }
+
         const newSurvey: Survey = {
             id: Date.now(),
             title,
@@ -85,9 +125,79 @@ const CreateSurveyScreen = () => {
             userContact: isAnonymous ? undefined : userContact,
             questions,
             isClosed: false,
+            imageUrl: uploadedUrl ? uploadedUrl : undefined,
         };
+        console.log(newSurvey);
         dispatch(addSurvey(newSurvey));
-        router.push("/creator");
+        // router.push("/creator");
+    };
+
+    const getQuestionTypeLabel = (type: QuestionType) => {
+        switch (type) {
+            case QuestionType.TEXT:
+                return "Текстовый вопрос";
+            case QuestionType.SINGLE_CHOICE:
+                return "Одиночный выбор";
+            case QuestionType.MULTIPLE_CHOICE:
+                return "Множественный выбор";
+            case QuestionType.RATING:
+                return "Оценка по шкале";
+            default:
+                return "Неизвестный тип";
+        }
+    };
+
+    const options = [
+        { label: "Текстовый", value: "text" },
+        { label: "Одиночный выбор", value: "single_choice" },
+        { label: "Множественный выбор", value: "multiple_choice" },
+        { label: "Оценка (1-5)", value: "rating" },
+    ];
+
+
+    const [image, setImage] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+            uploadImage(result.assets[0].uri);
+        }
+    };
+
+
+    const uploadImage = async (uri: string) => {
+        setUploading(true);
+        setError(null);
+
+        const formData = new FormData();
+        formData.append("image", {
+            uri,
+            name: "upload.jpg",
+            type: "image/jpeg",
+        } as any);
+
+        try {
+            // const response = await api.post("/upload", formData, {
+            //     headers: { "Content-Type": "multipart/form-data" },
+            // });
+            // setUploadedUrl(response.data.imageUrl);
+            
+            setUploadedUrl("https://armap-design.ru/img/135152");
+        } catch (error) {
+            setError("Ошибка загрузки изображения");
+            console.error(error);
+        } finally {
+            setUploading(false);
+        }
     };
 
     return (
@@ -98,13 +208,25 @@ const CreateSurveyScreen = () => {
                 <TextInput style={styles.input} placeholder="Название опроса" value={title} onChangeText={setTitle} />
                 <TextInput style={styles.input} placeholder="Описание (необязательно)" value={description} onChangeText={setDescription} />
 
+                <View style={styles.containerImage}>
+                    <TouchableOpacity style={styles.button} onPress={pickImage}>
+                        <Text style={styles.buttonText}>Выбрать изображение</Text>
+                    </TouchableOpacity>
+
+                    {image && <Image source={{ uri: image }} style={styles.image} />}
+
+                    {uploading && <ActivityIndicator size="small" color="#3579F6" />}
+                    {uploadedUrl && <Text style={styles.uploadedUrl}>Изображение загружено</Text>}
+                    {error && <Text style={styles.error}>{error}</Text>}
+                </View>
+
                 <View style={styles.switchContainer}>
                     <Text>Анонимный опрос</Text>
                     <Switch value={isAnonymous} onValueChange={setIsAnonymous} />
                 </View>
 
                 {!isAnonymous && (
-                    <TextInput style={styles.input} placeholder="Контакт для ответов" value={userContact} onChangeText={setUserContact} />
+                    <TextInput style={styles.input} placeholder="Какой контакт необходимо предоставить" value={userContact} onChangeText={setUserContact} />
                 )}
 
                 <Text style={styles.subHeader}>Вопросы:</Text>
@@ -114,6 +236,8 @@ const CreateSurveyScreen = () => {
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
                         <View style={styles.questionContainer}>
+                            <Text style={styles.questionType}>{getQuestionTypeLabel(item.type)}</Text>
+
                             <TextInput
                                 style={styles.input}
                                 placeholder="Текст вопроса"
@@ -122,7 +246,10 @@ const CreateSurveyScreen = () => {
                             />
                             <View style={styles.switchContainer}>
                                 <Text>Обязательный</Text>
-                                <Switch value={item.required} onValueChange={(value) => handleUpdateQuestion(item.id, { required: value })} />
+                                <Switch
+                                    value={item.required}
+                                    onValueChange={(value) => handleUpdateQuestion(item.id, { required: value })}
+                                />
                             </View>
 
                             {(item.type === QuestionType.SINGLE_CHOICE || item.type === QuestionType.MULTIPLE_CHOICE) ? (
@@ -142,7 +269,6 @@ const CreateSurveyScreen = () => {
                                                         handleUpdateQuestion(item.id, { options: newOptions });
                                                     }}
                                                 />
-                                                {/* Кнопка удаления варианта */}
                                                 <TouchableOpacity
                                                     style={styles.deleteOptionButton}
                                                     onPress={() => {
@@ -159,7 +285,6 @@ const CreateSurveyScreen = () => {
                                             </View>
                                         )}
                                     />
-                                    {/* Кнопка добавления нового варианта */}
                                     <TouchableOpacity
                                         style={styles.addOptionButton}
                                         onPress={() => {
@@ -171,7 +296,21 @@ const CreateSurveyScreen = () => {
                                     </TouchableOpacity>
                                 </View>
                             ) : item.type === QuestionType.RATING ? (
-                                <Text>Оценочная шкала (1 - {item.scale})</Text>
+                                <View style={styles.ratingContainer}>
+                                    <Text>Оценочная шкала (1 - {item.scale})</Text>
+                                    <TextInput
+                                        style={styles.scaleInput}
+                                        placeholder="Макс. значение"
+                                        value={item.scale.toString()}
+                                        keyboardType="numeric"
+                                        onChangeText={(text) => {
+                                            const numericValue = parseInt(text, 10);
+                                            if (!isNaN(numericValue) && numericValue > 0) {
+                                                handleUpdateQuestion(item.id, { scale: numericValue });
+                                            }
+                                        }}
+                                    />
+                                </View>
                             ) : null}
 
                             <TouchableOpacity onPress={() => handleDeleteQuestion(item.id)} style={styles.deleteQuestionButtonContainer}>
@@ -186,13 +325,34 @@ const CreateSurveyScreen = () => {
                     )}
                 />
 
-                <Picker selectedValue="" onValueChange={(value) => value && handleAddQuestion(value as QuestionType)}>
-                    <Picker.Item label="Добавить вопрос" value="" />
-                    <Picker.Item label="Текстовый" value={QuestionType.TEXT} />
-                    <Picker.Item label="Одиночный выбор" value={QuestionType.SINGLE_CHOICE} />
-                    <Picker.Item label="Множественный выбор" value={QuestionType.MULTIPLE_CHOICE} />
-                    <Picker.Item label="Оценка (1-5)" value={QuestionType.RATING} />
-                </Picker>
+                <Select
+                    options={options}
+                    placeholder="Добавить вопрос"
+                    value={options.find(option => option.value === selectedQuestion) || null}
+                    onChange={handleSelectChange}
+                    styles={{
+                        control: (base) => ({
+                            ...base,
+                            backgroundColor: "#fff",
+                            borderColor: "#ccc",
+                            borderRadius: "5px",
+                            padding: "4px",
+                            marginTop: 16,
+                            fontSize: "14px",
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        }),
+                        option: (base, { isFocused }) => ({
+                            ...base,
+                            backgroundColor: isFocused ? "#f0f0f0" : "#fff",
+                            color: "#333",
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        }),
+                        singleValue: (base) => ({
+                            ...base,
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        }),
+                    }}
+                />
 
                 <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                     <Text style={styles.submitText}>Создать опрос</Text>
@@ -224,7 +384,8 @@ const styles = StyleSheet.create({
     subHeader: {
         fontSize: 18,
         fontWeight: "bold",
-        marginTop: 20,
+        marginTop: 30,
+        marginBottom: 12,
     },
     input: {
         borderWidth: 1,
@@ -265,6 +426,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         alignItems: "center",
         marginTop: 20,
+        marginBottom: 200,
     },
     submitText: {
         color: "#fff",
@@ -315,8 +477,67 @@ const styles = StyleSheet.create({
     deleteQuestionButtonContainer: {
         flexDirection: "row",
         alignItems: "center",
-        padding: 10,
+        marginTop: 8,
+        padding: 8,
         gap: 14,
+        width: 'auto',
+        alignSelf: 'flex-start',
+    },
+    questionType: {
+        fontSize: 16,
+        fontWeight: "bold",
+        marginBottom: 5,
+        color: "#333",
+    },
+    ratingContainer: {
+        marginTop: 10,
+    },
+    scaleInput: {
+        height: 40,
+        borderColor: "#ccc",
+        borderWidth: 1,
+        borderRadius: 5,
+        paddingLeft: 8,
+        marginTop: 5,
+        width: 80,
+        textAlign: "center",
+    },
+    containerImage: {
+        alignItems: "center",
+        padding: 12,
+        marginVertical: 10,
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 5, 
+        backgroundColor: "#fff",
+        width: "100%",
+        alignSelf: "center",
+    },
+    button: {
+        backgroundColor: "#3579F6",
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 5,
+    },
+    buttonText: {
+        color: "white",
+        fontWeight: "500",
+    },
+    image: {
+        width: "90%",
+        aspectRatio: 5/3,
+        borderRadius: 10,
+        marginVertical: 20,
+    },
+    uploadedUrl: {
+        color: "green",
+        fontSize: 12,
+        marginTop: 10,
+    },
+    error: {
+        color: "red",
+        fontSize: 14,
+        marginTop: 10,
     },
 });
 
