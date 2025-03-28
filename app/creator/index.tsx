@@ -13,8 +13,7 @@ const CreatorDashboard = () => {
     const dispatch = useAppDispatch();
     const router = useRouter();
 
-    // const name = useAppSelector((state) => state.auth.user?.name);
-    const name = "Алексей";
+    const name = useAppSelector((state) => state.auth.user?.name);
     const surveys = useAppSelector((state) => state.survey.surveys);
     const loading = useAppSelector((state) => state.survey.loading);
     const fetchSurveysError = useAppSelector((state) => state.error.fetchSurveysError);
