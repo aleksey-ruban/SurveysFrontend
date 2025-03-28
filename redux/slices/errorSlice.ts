@@ -6,6 +6,9 @@ const initialState: ErrorState = {
     resetPasswordError: null,
     registerError: null,
     fetchSurveysError: null,
+    fetchSurveyResultError: null,
+    closeSurveyError: null,
+    deleteSurveyError: null,
 };
 
 const errorSlice = createSlice({
@@ -24,6 +27,15 @@ const errorSlice = createSlice({
         setFetchSurveysError(state, action: PayloadAction<string>) {
             state.fetchSurveysError = action.payload;
         },
+        setFetchSurveyResultError(state, action: PayloadAction<string>) {
+            state.fetchSurveyResultError = action.payload;
+        },
+        setCloseSurveyError(state, action: PayloadAction<string>) {
+            state.closeSurveyError = action.payload;
+        },
+        setDeleteSurveyError(state, action: PayloadAction<string>) {
+            state.deleteSurveyError = action.payload;
+        },
         clearLoginError(state) {
             state.loginError = null;
         },
@@ -36,6 +48,15 @@ const errorSlice = createSlice({
         clearFetchSurveysError(state) {
             state.fetchSurveysError = null;
         },
+        clearFetchSurveyResultError(state) {
+            state.fetchSurveyResultError = null;
+        },
+        clearCloseSurveyError(state) {
+            state.closeSurveyError = null;
+        },
+        clearDeleteSurveyError(state) {
+            state.deleteSurveyError = null;
+        },
         clearAllErrors(state) {
             Object.assign(state, initialState);
         },
@@ -47,10 +68,16 @@ export const {
     setResetPasswordError,
     setRegisterError,
     setFetchSurveysError,
+    setFetchSurveyResultError,
+    setCloseSurveyError,
+    setDeleteSurveyError,
     clearLoginError,
     clearResetPasswordError,
     clearRegisterError,
     clearFetchSurveysError,
+    clearFetchSurveyResultError,
+    clearCloseSurveyError,
+    clearDeleteSurveyError,
     clearAllErrors,
 } = errorSlice.actions;
 

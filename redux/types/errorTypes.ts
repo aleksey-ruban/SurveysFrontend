@@ -3,4 +3,7 @@ export interface ErrorState {
     resetPasswordError: string | null;
     registerError: string | null;
     fetchSurveysError: string | null,
+    fetchSurveyResultError: string | null,
+    closeSurveyError: string | null,
+    deleteSurveyError: string | null,
 }

@@ -1,3 +1,4 @@
+import { SurveyResult } from "../types/resultsTypes";
 import { Survey, QuestionType } from "../types/surveysTypes";
 
 export const surveys: Survey[] = [
@@ -248,3 +249,96 @@ export const surveys: Survey[] = [
         ]
     }
 ];
+
+export const surveyResult: SurveyResult = {
+    id: 1,
+    isAnonymous: false,
+    isClosed: false,
+    title: "Опрос по дизайну",
+    description: "Оцените наши изменения",
+    imageUrl: "https://png.pngtree.com/thumb_back/fw800/background/20230610/pngtree-picture-of-a-blue-bird-on-a-black-background-image_2937385.jpg",
+    userContact: "Телефон",
+    questions: [
+        {
+            id: 1,
+            questionText: "Какие у вас впечатления?",
+            required: true,
+            type: QuestionType.TEXT,
+            responses: {
+                type: QuestionType.TEXT,
+                answers: [
+                    "Классно курто, всего хватило",
+                    "Очень красиво!",
+                    "Хочеться красочнее",
+                    "Больше дизайна сделайте"
+                ]
+            }
+        },
+        {
+            id: 2,
+            questionText: "Что вы хотите изменить?",
+            required: true,
+            type: QuestionType.SINGLE_CHOICE,
+            responses: {
+                type: QuestionType.SINGLE_CHOICE,
+                options: [
+                    {
+                        option: "Дизайн",
+                        count: 12
+                    },
+                    {
+                        option: "Компоненты",
+                        count: 2
+                    },
+                    {
+                        option: "Ux",
+                        count: 3
+                    },
+                    {
+                        option: "Всё",
+                        count: 1
+                    },
+                ]
+            }
+        },
+        {
+            id: 3,
+            questionText: "Что вам понравилось?",
+            required: true,
+            type: QuestionType.MULTIPLE_CHOICE,
+            responses: {
+                type: QuestionType.MULTIPLE_CHOICE,
+                options: [
+                    {
+                        option: "Дизайн",
+                        count: 12
+                    },
+                    {
+                        option: "Компоненты",
+                        count: 2
+                    },
+                    {
+                        option: "Ux",
+                        count: 3
+                    },
+                    {
+                        option: "Всё",
+                        count: 1
+                    },
+                ]
+            }
+        },
+        {
+            id: 4,
+            questionText: "Оцените нашу работу",
+            required: true,
+            type: QuestionType.RATING,
+            responses: {
+                type: QuestionType.RATING,
+                scale: 5,
+                averageRating: 4.3,
+                ratingsCount: 17,
+            }
+        }
+    ]
+}
