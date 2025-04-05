@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Image, FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import { fetchSurveys } from '@/redux/slices/surveySlice';
 import { useRouter } from 'expo-router';
 import { useAppDispatch } from '@/hooks/useAppDispatch';

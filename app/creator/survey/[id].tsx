@@ -33,8 +33,9 @@ const SurveyResults = () => {
             setLoading(false);
         }
     }, [imageUrl, loadError]);
-
-    const imageSource = loadError || loadingImage || (surveyResult?.imageUrl === null) ? placeholderImage : { uri: imageUrl };
+    
+    const isImgUrl = surveyResult?.imageUrl !== undefined
+    const imageSource = !isImgUrl || loadError || loadingImage || (surveyResult?.imageUrl === null) ? placeholderImage : { uri: imageUrl };
 
     const surveyId = Array.isArray(id) ? parseInt(id[0], 10) : parseInt(id, 10);
 
