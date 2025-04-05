@@ -9,6 +9,9 @@ const initialState: ErrorState = {
     fetchSurveyResultError: null,
     closeSurveyError: null,
     deleteSurveyError: null,
+    deleteAccountError: null,
+    fetchUserSurveysError: null,
+    fetchSurveyUser: null,
 };
 
 const errorSlice = createSlice({
@@ -36,6 +39,15 @@ const errorSlice = createSlice({
         setDeleteSurveyError(state, action: PayloadAction<string>) {
             state.deleteSurveyError = action.payload;
         },
+        setDeleteAccountError(state, action: PayloadAction<string>) {
+            state.deleteAccountError = action.payload;
+        },
+        setFetchUserSurveysError(state, action: PayloadAction<string>) {
+            state.fetchUserSurveysError = action.payload;
+        },
+        setFetchSurveyUser(state, action: PayloadAction<string>) {
+            state.fetchSurveyUser = action.payload
+        },
         clearLoginError(state) {
             state.loginError = null;
         },
@@ -57,6 +69,15 @@ const errorSlice = createSlice({
         clearDeleteSurveyError(state) {
             state.deleteSurveyError = null;
         },
+        clearDeleteAccountError(state) {
+            state.deleteAccountError = null;
+        },
+        clearFetchUserSurveysError(state) {
+            state.fetchUserSurveysError = null;
+        },
+        clearFetchSurveyUser(state) {
+            state.fetchSurveyUser = null;
+        },
         clearAllErrors(state) {
             Object.assign(state, initialState);
         },
@@ -71,6 +92,9 @@ export const {
     setFetchSurveyResultError,
     setCloseSurveyError,
     setDeleteSurveyError,
+    setDeleteAccountError,
+    setFetchUserSurveysError,
+    setFetchSurveyUser,
     clearLoginError,
     clearResetPasswordError,
     clearRegisterError,
@@ -78,6 +102,9 @@ export const {
     clearFetchSurveyResultError,
     clearCloseSurveyError,
     clearDeleteSurveyError,
+    clearDeleteAccountError,
+    clearFetchUserSurveysError,
+    clearFetchSurveyUser,
     clearAllErrors,
 } = errorSlice.actions;
 

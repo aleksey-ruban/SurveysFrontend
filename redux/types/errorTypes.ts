@@ -6,4 +6,7 @@ export interface ErrorState {
     fetchSurveyResultError: string | null,
     closeSurveyError: string | null,
     deleteSurveyError: string | null,
+    deleteAccountError: string | null,
+    fetchUserSurveysError: string | null,
+    fetchSurveyUser: string | null,
 }
