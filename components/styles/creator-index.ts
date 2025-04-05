@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 30,
+        padding: "2%",
         marginTop: 60,
         backgroundColor: '#fff',
     },
@@ -49,16 +49,6 @@ export const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 60,
     },
-    // surveyItem: {
-    //     padding: 15,
-    //     backgroundColor: '#f5f5f5',
-    //     borderRadius: 8,
-    //     marginBottom: 10,
-    // },
-    // surveyTitle: {
-    //     fontSize: 16,
-    //     fontWeight: 'bold',
-    // },
     viewContainer: {
         width: "100%",
         flexDirection: 'row',

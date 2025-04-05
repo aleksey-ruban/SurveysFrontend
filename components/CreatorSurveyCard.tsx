@@ -1,5 +1,5 @@
 import { Survey } from '@/redux/types/surveysTypes';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, View, Image, StyleSheet } from 'react-native';
 
 interface SurveyCardProps {
@@ -10,17 +10,45 @@ interface SurveyCardProps {
 const SurveyCard: React.FC<SurveyCardProps> = ({ survey, onPress }) => {
     const { imageUrl, title, description, isClosed } = survey;
 
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [loadError, setLoadError] = useState(false);
+
+    const placeholderImage = require("../assets/images/placeholder.png");
+
+    const [loadingImage, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (imageUrl && !loadError) {
+            setLoading(true);
+            Image.prefetch(imageUrl)
+                .then(() => setLoading(false))
+                .catch(() => {
+                    setLoading(false);
+                    setLoadError(true);
+                });
+        } else {
+            setLoading(false);
+        }
+    }, [imageUrl, loadError]);
+
+    const isImgUrl = survey?.imageUrl !== undefined
+    const imageSource = !isImgUrl || loadError || loadingImage || (survey?.imageUrl === null) ? placeholderImage : { uri: imageUrl };
+
     return (
         <TouchableOpacity style={styles.surveyItem} onPress={onPress}>
-            {imageUrl ? (
-                <Image source={{ uri: imageUrl }} style={styles.surveyImage} />
-            ) : (
-                <Image source={require('../assets/images/placeholder.png')} style={styles.surveyImage} />
-            )}
+            <View style={styles.imageContainer}>
+                <Image
+                    source={imageSource}
+                    style={styles.surveyImage}
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => setLoadError(true)}
+                    resizeMode="cover"
+                />
+            </View>
 
             <View style={styles.surveyInfo}>
                 <Text style={styles.surveyTitle}>{title}</Text>
-                { isClosed ? (
+                {isClosed ? (
                     <Text style={styles.surveyStatusClosed}>
                         Закрыт
                     </Text>
@@ -29,7 +57,7 @@ const SurveyCard: React.FC<SurveyCardProps> = ({ survey, onPress }) => {
                         Открыт
                     </Text>
                 )}
-                
+
                 <Text style={styles.surveyDescription} numberOfLines={3}>
                     {description || "Нет описания"}
                 </Text>
@@ -50,11 +78,16 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
     },
-    surveyImage: {
+    imageContainer: {
         width: 80,
         height: 80,
         borderRadius: 8,
         marginRight: 10,
+        overflow: "hidden",
+    },
+    surveyImage: {
+        width: "100%",
+        height: "100%",
     },
     surveyInfo: {
         flex: 1,
