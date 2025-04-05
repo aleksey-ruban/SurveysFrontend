@@ -3,7 +3,7 @@ import { RootState } from "../store";
 import api from "../../utils/api";
 import { AuthState, LoginPayload, RegisterPayload } from "../types/authTypes";
 import axios from "axios";
-import { setLoginError, setRegisterError, setResetPasswordError } from "./errorSlice";
+import { setDeleteAccountError, setLoginError, setRegisterError, setResetPasswordError } from "./errorSlice";
 
 const initialState: AuthState = {
     isAuthenticated: false,
@@ -109,6 +109,25 @@ export const resetPassword = createAsyncThunk(
     }
 );
 
+export const deleteAccount = createAsyncThunk(
+    "auth/deleteAccount",
+    async (_, { rejectWithValue, dispatch }) => {
+        try {
+            const response = await api.delete("/delete-account");
+            dispatch(logout());
+            return response.data;
+        } catch (error) {
+            let errorMessage = "Ошибка удаления аккаунта";
+
+            if (axios.isAxiosError(error) && error.response) {
+                errorMessage = error.response.data.message || "Ошибка сервера";
+            }
+            
+            dispatch(setDeleteAccountError(errorMessage));
+            return rejectWithValue(errorMessage);
+        }
+    }
+);
 
 export const selectUser = (state: RootState) => state.auth.user;
 
