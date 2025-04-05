@@ -3,6 +3,7 @@ import authReducer from './slices/authSlice';
 import surveysReducer from './slices/surveySlice';
 import errorReducer from './slices/errorSlice';
 import resultReducer from './slices/resultsSlice';
+import surveyUserReducer from './slices/surveyUserSlice';
 
 export const store = configureStore({
     reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
         survey: surveysReducer,
         error: errorReducer,
         results: resultReducer,
+        surveyUser: surveyUserReducer,
     },
 });
 
