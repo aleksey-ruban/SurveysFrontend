@@ -1,5 +1,6 @@
 export interface SurveysState {
     surveys: Array<Survey>;
+    userSurveys: Array<Survey>,
     loading: boolean,
 }
 

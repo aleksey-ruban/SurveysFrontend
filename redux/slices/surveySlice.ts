@@ -8,6 +8,7 @@ import { closeSurvey as closeSurveyAction } from "./resultsSlice"
 
 const initialState: SurveysState = {
     surveys: [],
+    userSurveys: [],
     loading: false,
 };
 
@@ -17,6 +18,9 @@ const surveysSlice = createSlice({
     reducers: {
         setSurveys(state, action: PayloadAction<Survey[]>) {
             Object.assign(state.surveys, action.payload);
+        },
+        setUserSurveys(state, aciton: PayloadAction<Survey[]>) {
+            Object.assign(state.userSurveys, aciton.payload);
         },
         addSurvey(state, action: PayloadAction<Survey>) {
             state.surveys.push(action.payload);
@@ -41,6 +45,15 @@ const surveysSlice = createSlice({
             })
             .addCase(fetchSurveys.rejected, (state) => {
                 state.loading = false;
+            })
+            .addCase(fetchUserSurveys.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchUserSurveys.fulfilled, (state) => {
+                state.loading = false;
+            })
+            .addCase(fetchUserSurveys.rejected, (state) => {
+                state.loading = false;
             });
     },
 });
@@ -64,6 +77,32 @@ export const fetchSurveys = createAsyncThunk(
             // return response.data;
 
             dispatch(setSurveys(surveys));
+            return surveys;
+        } catch (error) {
+            let errorMessage = "Ошибка загрузки опросов";
+
+            if (axios.isAxiosError(error) && error.response) {
+                errorMessage = error.response.data.message || "Ошибка сервера";
+            }
+            
+            dispatch(setFetchSurveysError(errorMessage));
+            return rejectWithValue(errorMessage);
+        }
+    }
+);
+
+export const fetchUserSurveys = createAsyncThunk(
+    "surveys/fetchUserSurveys",
+    async (
+        _,
+        { rejectWithValue, dispatch }
+    ) => {
+        try {            
+            // const response = await api.get(`/user-surveys`);
+            // dispatch(setSurveys(response.data));
+            // return response.data;
+
+            dispatch(setUserSurveys(surveys));
             return surveys;
         } catch (error) {
             let errorMessage = "Ошибка загрузки опросов";
@@ -137,6 +176,7 @@ export const deleteSurveyRequest = createAsyncThunk(
 
 export const {
     setSurveys,
+    setUserSurveys,
     addSurvey,
     closeSurvey,
     deleteSurvey,
