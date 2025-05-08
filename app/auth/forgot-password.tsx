@@ -8,7 +8,8 @@ import { useAppDispatch } from '../../hooks/useAppDispatch';
 import { useAppSelector } from '../../hooks/useAppSelector';
 import styles from '../../components/styles/forgot-password-screen';
 import { clearResetPasswordError } from '@/redux/slices/errorSlice';
-import { resetPassword } from '@/redux/slices/authSlice';
+import { loadUserFromStorage, resetPassword } from '@/redux/slices/authSlice';
+import { store } from '@/redux/store';
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
@@ -22,10 +23,27 @@ export default function ForgotPasswordScreen() {
         resolver: yupResolver(forgotPasswordSchema),
     });
 
-    const onSubmit = (data: { email: string }) => {
-        dispatch(resetPassword(data));
-        console.log('Запрос на восстановление пароля отправлен:', data);
+    const onSubmit = async (data: { email: string }) => {
+        const resultAction = await dispatch(resetPassword(data));
+        if (resetPassword.fulfilled.match(resultAction)) {
+            router.push("/auth/login");
+        }
     };
+
+    useEffect(() => {
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                router.push('/');
+            }
+        };
+        loadAndCheckUser();
+    }, [dispatch]);
 
     useEffect(() => {
         dispatch(clearResetPasswordError());

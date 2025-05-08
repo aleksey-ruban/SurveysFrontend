@@ -1,8 +1,20 @@
 export interface AuthState {
     isAuthenticated: boolean;
-    user: any | null;
+    user: User | null;
     token: string | null;
     loading: boolean;
+}
+
+export enum UserRole {
+    USER = "respondent",
+    CREATOR = "creator",
+}
+
+export interface User {
+    id: number,
+    email: string,
+    name: string,
+    role: UserRole,
 }
 
 export interface LoginPayload {

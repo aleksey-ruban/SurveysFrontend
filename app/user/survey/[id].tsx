@@ -4,22 +4,65 @@ import { Answer, SurveyUserResult } from "../../../redux/types/surveyUserTypes";
 import { Question, QuestionType } from "../../../redux/types/surveysTypes";
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { RootState } from "@/redux/store";
-import { fetchSurveyUser } from "@/redux/slices/surveyUserSlice";
+import { RootState, store } from "@/redux/store";
+import { fetchSurveyUser, submitSurveyUser } from "@/redux/slices/surveyUserSlice";
+import { loadUserFromStorage } from "@/redux/slices/authSlice";
+import { UserRole } from "@/redux/types/authTypes";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { mediaURL } from "@/utils/api";
+import { clearSubmitSurveyAnswerError } from "@/redux/slices/errorSlice";
 
 const SurveyPassScreen = () => {
     const dispatch = useAppDispatch();
-
-    const surveyUrl = "my-survey-url";
 
     const survey = useAppSelector((state: RootState) => state.surveyUser.survey);
     const isCompleted = useAppSelector((state: RootState) => state.surveyUser.isCompleted);
     const loading = useAppSelector((state: RootState) => state.surveyUser.loading);
     const error = useAppSelector((state: RootState) => state.error.fetchSurveyUser);
+    const submitSurveyAnswerError = useAppSelector((state) => state.error.submitSurveyAnswerError);
+
+    const router = useRouter();
+
+    const { id } = useLocalSearchParams();
 
     useEffect(() => {
-        dispatch(fetchSurveyUser(surveyUrl));
-    }, [dispatch, surveyUrl]);
+        dispatch(clearSubmitSurveyAnswerError());
+        return () => {
+            dispatch(clearSubmitSurveyAnswerError());
+        };
+    }, [dispatch]);
+
+    useEffect(() => {
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                if (authState.user !== null) {
+                    if (authState.user.role == UserRole.CREATOR) {
+                        router.push('/creator');
+                    } else if (authState.user.role == UserRole.USER) {
+                        if (typeof id === 'string') {
+                            dispatch(fetchSurveyUser(id));
+                        }
+                        return;
+                    }
+                } else {
+                    router.push({
+                        pathname: '/',
+                        params: { wishPath: `user/survey/${id}` },
+                    });
+                }
+            } else {
+                router.push('/auth/login');
+            }
+        };
+
+        loadAndCheckUser();
+    }, [dispatch, id]);
 
     const isDisabled = isCompleted || survey?.isClosed;
 
@@ -34,15 +77,13 @@ const SurveyPassScreen = () => {
 
     const [loadingImage, setLoading] = useState(true);
 
-    
-
     const isImgUrl = survey?.imageUrl !== undefined
-    const imageSource = !isImgUrl || loadError || loadingImage || (survey?.imageUrl === null) ? placeholderImage : { uri: imageUrl };
+    const imageSource = !isImgUrl || loadError || loadingImage || (survey?.imageUrl === null) ? placeholderImage : { uri: `${mediaURL}${imageUrl}` };
 
     useEffect(() => {
         if (imageUrl && !loadError) {
             setLoading(true);
-            Image.prefetch(imageUrl)
+            Image.prefetch(`${mediaURL}${imageUrl}`)
                 .then(() => setLoading(false))
                 .catch(() => {
                     setLoading(false);
@@ -65,24 +106,26 @@ const SurveyPassScreen = () => {
     if (error) {
         return <Text style={styles.errorMessage}>Ошибка: {error}</Text>;
     }
+    
 
     if (!survey) {
         return <Text style={styles.message}>Опрос не найден</Text>;
     }
 
-    
+
     const handleChange = (questionId: number, value: any) => {
+        dispatch(clearSubmitSurveyAnswerError());
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!survey || isDisabled) return;
-    
+        dispatch(clearSubmitSurveyAnswerError());
         const missingRequired = survey.questions.some((question) => {
             if (!question.required) return false;
-    
+
             const answer = answers[question.id];
-    
+
             switch (question.type) {
                 case QuestionType.TEXT:
                     return !answer || answer.trim() === "";
@@ -96,7 +139,7 @@ const SurveyPassScreen = () => {
                     return false;
             }
         });
-    
+
         if (missingRequired) {
             // Можно заменить на кастомный UI, Snackbar и т.п.
             console.warn("❗ Заполните все обязательные поля!");
@@ -109,59 +152,53 @@ const SurveyPassScreen = () => {
             alert('Заполните контактные данные');
             return;
         }
-    
+
         // Формируем результат
         const formattedAnswers: Answer[] = survey.questions.map((question) => {
             const rawAnswer = answers[question.id];
-    
+
             switch (question.type) {
                 case QuestionType.TEXT:
                     return {
                         id: question.id,
-                        type: QuestionType.TEXT,
                         answer: {
-                            type: QuestionType.TEXT,
                             answer: rawAnswer || "",
                         },
                     };
                 case QuestionType.SINGLE_CHOICE:
                     return {
                         id: question.id,
-                        type: QuestionType.SINGLE_CHOICE,
                         answer: {
-                            type: QuestionType.SINGLE_CHOICE,
-                            options: rawAnswer ? rawAnswer : null,
+                            option: rawAnswer ? rawAnswer : null,
                         },
                     };
                 case QuestionType.MULTIPLE_CHOICE:
                     return {
                         id: question.id,
-                        type: QuestionType.MULTIPLE_CHOICE,
                         answer: {
-                            type: QuestionType.MULTIPLE_CHOICE,
-                            options: (rawAnswer || []).join(","),
+                            options: (rawAnswer || []),
                         },
                     };
                 case QuestionType.RATING:
                     return {
                         id: question.id,
-                        type: QuestionType.RATING,
                         answer: {
-                            type: QuestionType.RATING,
                             scale: rawAnswer || 0,
                         },
                     };
             }
         });
-    
+
         const result: SurveyUserResult = {
             surveyId: survey.id,
             userContact: userContactValue || undefined,
             answers: formattedAnswers,
         };
-    
-        console.log("📦 Отправляем результат:", result);
-        // dispatch(submitSurveyAnswers(result));
+
+        const resultAction = await dispatch(submitSurveyUser(result));
+        if (submitSurveyUser.fulfilled.match(resultAction)) {
+            router.push("/");
+        }
     };
 
     return (
@@ -238,6 +275,9 @@ const SurveyPassScreen = () => {
                     </TouchableOpacity>
                 )}
             </View>
+
+            {submitSurveyAnswerError && <Text style={styles.errorText}>{submitSurveyAnswerError}</Text>}
+
         </ScrollView>
     );
 };
@@ -262,14 +302,14 @@ const renderInput = (
                 <View>
                     {question.options.map((option) => (
                         <TouchableOpacity
-                            key={option}
+                            key={option.text}
                             style={[
                                 styles.option,
                                 value === option && styles.optionSelected,
                             ]}
                             onPress={() => onChange(question.id, option)}
                         >
-                            <Text>{option}</Text>
+                            <Text>{option.text}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -280,7 +320,7 @@ const renderInput = (
                 <View>
                     {question.options.map((option) => (
                         <TouchableOpacity
-                            key={option}
+                            key={option.text}
                             style={[
                                 styles.option,
                                 selected.includes(option) && styles.optionSelected,
@@ -292,7 +332,7 @@ const renderInput = (
                                 onChange(question.id, newValue);
                             }}
                         >
-                            <Text>{option}</Text>
+                            <Text>{option.text}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -496,6 +536,15 @@ const styles = StyleSheet.create({
         marginTop: 12,
         fontSize: 16,
         color: "#555",
+    },
+    errorText: {
+        color: 'red',
+        fontSize: 14,
+        fontWeight: 500,
+        marginTop: 0,
+        marginLeft: "13%",
+        width: "75%",
+        minWidth: 380,
     },
 });
 

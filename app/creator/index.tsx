@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import { fetchSurveys } from '@/redux/slices/surveySlice';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,9 @@ import { styles } from '@/components/styles/creator-index';
 import { clearFetchSurveysError } from '@/redux/slices/errorSlice';
 import CreatorSurveyCard from '@/components/CreatorSurveyCard';
 import OwnerSurveyFilter, { FilterParams } from '@/components/OwnerSurveyFilter';
+import { loadUserFromStorage } from '@/redux/slices/authSlice';
+import { store } from '@/redux/store';
+import { UserRole } from '@/redux/types/authTypes';
 
 const CreatorDashboard = () => {
     const dispatch = useAppDispatch();
@@ -18,6 +21,12 @@ const CreatorDashboard = () => {
     const loading = useAppSelector((state) => state.survey.loading);
     const fetchSurveysError = useAppSelector((state) => state.error.fetchSurveysError);
 
+    let prevFilterParameters = useRef<FilterParams | null>({
+        statusFilter: 'all',
+        searchQuery: '',
+        sortOrder: 'asc',
+    });
+
     const [filters, setFilters] = useState({
         statusFilter: 'all',
         searchQuery: '',
@@ -25,7 +34,33 @@ const CreatorDashboard = () => {
     });
 
     useEffect(() => {
-        dispatch(fetchSurveys({ status: filters.statusFilter, search: filters.searchQuery, sort: filters.sortOrder }));
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                if (authState.user !== null) {
+                    if (authState.user.role == UserRole.CREATOR) {
+                        dispatch(fetchSurveys({ status: filters.statusFilter, search: filters.searchQuery, sort: filters.sortOrder }));
+                        return;
+                    } else if (authState.user.role == UserRole.USER) {
+                        router.push('/user');
+                    }
+                } else {
+                    router.push({
+                        pathname: '/',
+                        params: { wishPath: 'creator' },
+                    });
+                }
+            } else {
+                router.push('/auth/login');
+            }
+        };
+
+        loadAndCheckUser();
     }, [dispatch]);
 
     useEffect(() => {
@@ -40,9 +75,27 @@ const CreatorDashboard = () => {
     };
 
     const handleFilterChange = (newFilters: FilterParams) => {
+        if (prevFilterParameters.current?.statusFilter == newFilters.statusFilter &&
+            prevFilterParameters.current?.searchQuery == newFilters.searchQuery &&
+            prevFilterParameters.current?.sortOrder == newFilters.sortOrder
+        ) {
+            return;
+        }
+        console.log(1);
+        console.log(newFilters);
         setFilters(newFilters);
-        dispatch(fetchSurveys({ status: newFilters.statusFilter, search: newFilters.searchQuery, sort: newFilters.sortOrder }));
+        prevFilterParameters.current = newFilters;
     };
+
+    useEffect(() => {
+        if (prevFilterParameters.current != null) {
+            dispatch(fetchSurveys({
+                status: prevFilterParameters.current.statusFilter,
+                search: prevFilterParameters.current.searchQuery,
+                sort: prevFilterParameters.current.sortOrder 
+            }));
+        }
+    }, [prevFilterParameters.current]);
 
     return (
         <ScrollView style={styles.container}>
@@ -77,7 +130,7 @@ const CreatorDashboard = () => {
                         data={surveys}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
-                            <CreatorSurveyCard survey={item} onPress={() => router.push(`/creator/survey/${item.id}`)}/>
+                            <CreatorSurveyCard survey={item} onPress={() => router.push(`/creator/survey/${item.id}`)} />
                         )}
                     />
                 )

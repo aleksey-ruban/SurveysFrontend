@@ -3,8 +3,8 @@ import { ResultsState, SurveyResult } from "../types/resultsTypes";
 import api from "@/utils/api";
 import { setCloseSurveyError, setDeleteSurveyError, setFetchSurveyResultError } from "./errorSlice";
 import axios from "axios";
-import { surveyResult } from "./db";
 import { closeSurveyRequest, deleteSurveyRequest } from "./surveySlice";
+import { RootState } from "../store";
 
 const initialState: ResultsState = {
     surveyResult: null,
@@ -19,9 +19,9 @@ const restultsSlice = createSlice({
             state.surveyResult = action.payload;
             state.loading = false;
         },
-        closeSurvey(state, action: PayloadAction<{ id: number; updatedSurveyResult: Partial<SurveyResult> }>) {
-            if (state.surveyResult !== null) {
-                state.surveyResult = { ...state.surveyResult, ...action.payload.updatedSurveyResult };
+        closeSurvey(state, action: PayloadAction<{ id: number; isClosed: boolean }>) {
+            if (action.payload.id !== -1 && state.surveyResult) {
+                state.surveyResult.isClosed = action.payload.isClosed;
             }
         },
         deleteSurvey(state) {
@@ -47,15 +47,27 @@ export const fetchResults = createAsyncThunk(
     "surveys-result/fetchResults",
     async (
         id: number, 
-        { rejectWithValue, dispatch }
+        { rejectWithValue, dispatch, getState }
     ) => {
         try {
-            // const response = await api.get(`/survey-result/${id}`);
-            // dispatch(setResult(response.data));
-            // return response.data;
+            const state = getState() as RootState;
+            const token = state.auth.token;
 
-            dispatch(setResult(surveyResult));
-            return surveyResult;
+            if (!token) {
+                throw new Error("Нет токена");
+            }
+
+            const response = await api.get(
+                `creators/survey-result/${id}`,
+                {
+                    headers: {
+                        Authorization: `Token ${token}`,
+                    },
+                }
+            );
+
+            dispatch(setResult(response.data));
+            return response.data;
         } catch (error) {
             let errorMessage = "Ошибка загрузки результатов";
 
@@ -99,9 +111,13 @@ export const deleteSurveyFromResults = createAsyncThunk(
         { rejectWithValue, dispatch }
     ) => {
         try { 
-            dispatch(deleteSurveyRequest(id));
-            dispatch(deleteSurvey());
-            return true;
+            const result = await dispatch(deleteSurveyRequest(id));
+            if (deleteSurveyRequest.fulfilled.match(result)) {
+                dispatch(deleteSurvey());
+                return true;
+            } else {
+                return false;
+            }
         } catch (error) {
             let errorMessage = "Ошибка удаления опроса";
 

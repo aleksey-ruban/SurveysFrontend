@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, FlatList, ScrollView, useWindowDimensions } from 'react-native';
 import { fetchSurveys } from '@/redux/slices/surveySlice';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,9 @@ import { styles } from '@/components/styles/user-index';
 import { clearFetchSurveysError } from '@/redux/slices/errorSlice';
 import UserSurveyFilter, { FilterParams } from '@/components/UserSurveyFilter';
 import UserSurveyCard from '@/components/UserSurveyCard';
+import { loadUserFromStorage } from '@/redux/slices/authSlice';
+import { store } from '@/redux/store';
+import { UserRole } from '@/redux/types/authTypes';
 
 const UserDashboard = () => {
     const dispatch = useAppDispatch();
@@ -18,13 +21,44 @@ const UserDashboard = () => {
     const loading = useAppSelector((state) => state.survey.loading);
     const fetchSurveysError = useAppSelector((state) => state.error.fetchSurveysError);
 
+    let prevFilterParameters = useRef<FilterParams | null>({
+        searchQuery: '',
+        sortOrder: 'asc',
+    });
+
     const [filters, setFilters] = useState({
         searchQuery: '',
         sortOrder: 'asc',
     });
 
     useEffect(() => {
-        dispatch(fetchSurveys({ search: filters.searchQuery, sort: filters.sortOrder }));
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                if (authState.user !== null) {
+                    if (authState.user.role == UserRole.CREATOR) {
+                        router.push('/creator');
+                    } else if (authState.user.role == UserRole.USER) {
+                        dispatch(fetchSurveys({ status: "open", search: filters.searchQuery, sort: filters.sortOrder }));
+                        return;
+                    }
+                } else {
+                    router.push({
+                        pathname: '/',
+                        params: { wishPath: 'user' },
+                    });
+                }
+            } else {
+                router.push('/auth/login');
+            }
+        };
+
+        loadAndCheckUser();
     }, [dispatch]);
 
     useEffect(() => {
@@ -42,9 +76,24 @@ const UserDashboard = () => {
     }, [width]);
 
     const handleFilterChange = (newFilters: FilterParams) => {
+        if (prevFilterParameters.current?.searchQuery == newFilters.searchQuery &&
+            prevFilterParameters.current?.sortOrder == newFilters.sortOrder
+        ) {
+            return;
+        }
         setFilters(newFilters);
-        dispatch(fetchSurveys({ status: "open", search: newFilters.searchQuery, sort: newFilters.sortOrder }));
+        prevFilterParameters.current = newFilters;
     };
+
+    useEffect(() => {
+        if (prevFilterParameters.current != null) {
+            dispatch(fetchSurveys({
+                status: "open",
+                search: prevFilterParameters.current.searchQuery,
+                sort: prevFilterParameters.current.sortOrder 
+            }));
+        }
+        }, [prevFilterParameters.current]);
 
     return (
         <ScrollView style={styles.container}>
@@ -73,7 +122,7 @@ const UserDashboard = () => {
                         numColumns={numColumns}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
-                            <UserSurveyCard survey={item} onPress={() => router.push(`/user/survey/${item.id}`)}/>
+                            <UserSurveyCard survey={item} onPress={() => router.push(`/user/survey/${item.id}`)} />
                         )}
                     />
                 )

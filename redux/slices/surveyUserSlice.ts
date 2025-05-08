@@ -1,9 +1,9 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { SurveyUserState, SurveyWithStatus } from "../types/surveyUserTypes";
+import { SurveyUserResult, SurveyUserState, SurveyWithStatus } from "../types/surveyUserTypes";
 import api from "@/utils/api";
-import axios from "axios";
-import { setFetchSurveyUser } from "./errorSlice";
-import { surveys } from "./db";
+import axios, { HttpStatusCode } from "axios";
+import { setFetchSurveyUser, setSubmitSurveyAnswerError } from "./errorSlice";
+import { RootState } from "../store";
 
 const initialState: SurveyUserState = {
     survey: null,
@@ -38,15 +38,26 @@ export const fetchSurveyUser = createAsyncThunk(
     "surveyUser/fetchSurveyUser",
     async (
         url: string, 
-        { rejectWithValue, dispatch }
+        { rejectWithValue, dispatch, getState }
     ) => {
         try {
-            // const response = await api.get(`/user/surveys/${url}`);
-            // dispatch(setSurveyUser(response.data));
-            // return response.data;
+            const state = getState() as RootState;
+            const token = state.auth.token;
 
-            dispatch(setSurveyUser({survey: surveys.at(0)!, isCompleted: true}));
-            return {survey: surveys.at(0)!, isCompleted: false};
+            if (!token) {
+                throw new Error("Нет токена");
+            }
+
+            const response = await api.get(
+                `/user/survey/${url}`,
+                {
+                    headers: {
+                        Authorization: `Token ${token}`,
+                    },
+                }
+            );
+            dispatch(setSurveyUser(response.data));
+            return response.data;
         } catch (error) {
             let errorMessage = "Ошибка загрузки опросов";
 
@@ -55,6 +66,44 @@ export const fetchSurveyUser = createAsyncThunk(
             }
             
             dispatch(setFetchSurveyUser(errorMessage));
+            return rejectWithValue(errorMessage);
+        }
+    }
+);
+
+export const submitSurveyUser = createAsyncThunk(
+    "surveyUser/submitSurveyUser",
+    async (
+        result: SurveyUserResult, 
+        { rejectWithValue, dispatch, getState }
+    ) => {
+        try {
+            const state = getState() as RootState;
+            const token = state.auth.token;
+
+            if (!token) {
+                throw new Error("Нет токена");
+            }
+
+            const response = await api.post(
+                "/user/survey/submit-response",
+                result,
+                {
+                    headers: {
+                        Authorization: `Token ${token}`,
+                    },
+                }
+            );
+
+            return response.status == HttpStatusCode.Created
+        } catch (error) {
+            let errorMessage = "Ошибка загрузки ответа";
+
+            if (axios.isAxiosError(error) && error.response) {
+                errorMessage = error.response.data.message || "Ошибка сервера";
+            }
+            
+            dispatch(setSubmitSurveyAnswerError(errorMessage));
             return rejectWithValue(errorMessage);
         }
     }

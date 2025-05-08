@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchResults, closeSurveyRequestFromResults, deleteSurveyFromResults } from "../../../redux/slices/resultsSlice";
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { TouchableOpacity, Text, View, Image, ScrollView, ActivityIndicator, Alert, StyleSheet } from "react-native";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
+import { getAccount, loadUserFromStorage } from "@/redux/slices/authSlice";
+import { RootState, store } from "@/redux/store";
+import { UserRole } from "@/redux/types/authTypes";
+import { mediaURL } from "@/utils/api";
 
 const SurveyResults = () => {
     const dispatch = useAppDispatch();
@@ -20,10 +24,43 @@ const SurveyResults = () => {
 
     const [loadingImage, setLoading] = useState(true);
 
+    const router = useRouter();
+
+    const surveyId = Array.isArray(id) ? parseInt(id[0], 10) : parseInt(id, 10);
+
+    useEffect(() => {
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+            if (authState.token !== null) {
+                if (authState.user !== null) {
+                    if (authState.user.role == UserRole.CREATOR) {
+                        dispatch(fetchResults(surveyId));
+                        return;
+                    } else if (authState.user.role == UserRole.USER) {
+                        router.push('/user');
+                    }
+                } else {
+                    router.push({
+                        pathname: '/',
+                        params: { wishPath: `creator/survey/${id}` },
+                    });
+                }
+            } else {
+                router.push('/auth/login');
+            }
+        };
+    
+        loadAndCheckUser();
+    }, [dispatch, surveyId]);
+
     useEffect(() => {
         if (imageUrl && !loadError) {
             setLoading(true);
-            Image.prefetch(imageUrl)
+            Image.prefetch(`${mediaURL}${imageUrl}`)
                 .then(() => setLoading(false))
                 .catch(() => {
                     setLoading(false);
@@ -35,13 +72,7 @@ const SurveyResults = () => {
     }, [imageUrl, loadError]);
     
     const isImgUrl = surveyResult?.imageUrl !== undefined
-    const imageSource = !isImgUrl || loadError || loadingImage || (surveyResult?.imageUrl === null) ? placeholderImage : { uri: imageUrl };
-
-    const surveyId = Array.isArray(id) ? parseInt(id[0], 10) : parseInt(id, 10);
-
-    useEffect(() => {
-        dispatch(fetchResults(surveyId));
-    }, [dispatch, surveyId]);
+    const imageSource = !isImgUrl || loadError || loadingImage || (surveyResult.imageUrl === null) ? placeholderImage : { uri: `${mediaURL}${imageUrl}` };
 
     const handleToggleSurveyStatus = () => {
         if (surveyResult) {
@@ -49,16 +80,24 @@ const SurveyResults = () => {
         }
     };
 
-    const handleDeleteSurvey = () => {
-        Alert.alert("Подтверждение", "Вы уверены, что хотите удалить опрос?", [
-            { text: "Отмена", style: "cancel" },
-            { text: "Удалить", onPress: () => dispatch(deleteSurveyFromResults(surveyId)) },
-        ]);
+    const handleDeleteSurvey = async () => {
+        const confirmation = window.confirm("Вы уверены, что хотите удалить опрос? Это действие необратимо.");
+        if (confirmation) {
+            const result = await dispatch(deleteSurveyFromResults(surveyId))
+            if (deleteSurveyFromResults.fulfilled.match(result)) {
+                const success = result.payload;
+                if (success) {
+                    router.push('/');
+                } else {
+                    return;
+                }
+            }
+        }
     };
 
-    if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
-    if (fetchSurveyResultError) return <Text style={{ color: "red" }}>Ошибка: {fetchSurveyResultError}</Text>;
-    if (!surveyResult) return <Text>Опрос не найден</Text>;
+    if (loading) return <ActivityIndicator size="large" color="#0000ff" style={{margin: 220}}/>;
+    if (fetchSurveyResultError) return <Text style={{ color: "red", margin: 220, textAlign: "center" }}>Ошибка: {fetchSurveyResultError}</Text>;
+    if (!surveyResult) return <Text style={{ color: "red", margin: 220, textAlign: "center" }}>Опрос не найден</Text>;
 
     return (
         <ScrollView style={styles.container}>

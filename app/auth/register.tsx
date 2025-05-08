@@ -6,15 +6,16 @@ import { useRouter } from 'expo-router';
 import { useAppDispatch } from '../../hooks/useAppDispatch';
 import styles from '../../components/styles/register-screen';
 import { registerSchema } from './validationSchema';
-import { registerUser } from '../../redux/slices/authSlice';
+import { loadUserFromStorage, registerUser } from '../../redux/slices/authSlice';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { clearRegisterError } from '@/redux/slices/errorSlice';
-import { RegisterPayload } from '@/redux/types/authTypes';
+import { RegisterPayload, UserRole } from '@/redux/types/authTypes';
+import { store } from '@/redux/store';
 
 export default function RegisterScreen() {
     const router = useRouter();
     const dispatch = useAppDispatch();
-    const [selectedRole, setSelectedRole] = useState<string | null>(null);
+    const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
     const registerError = useAppSelector((state) => state.error.registerError);
 
     const {
@@ -32,8 +33,26 @@ export default function RegisterScreen() {
             return;
         }
         const formData: RegisterPayload = { ...data, role: selectedRole };
-        let result = await dispatch(registerUser(formData));
+        const resultAction = await dispatch(registerUser(formData));
+        if (registerUser.fulfilled.match(resultAction)) {
+            router.push("/");
+        }
     };
+
+    useEffect(() => {
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                router.push('/');
+            }
+        };
+        loadAndCheckUser();
+    }, [dispatch]);
 
     useEffect(() => {
         dispatch(clearRegisterError());
@@ -117,16 +136,16 @@ export default function RegisterScreen() {
                 <Text style={styles.label}>Выберите роль:</Text>
                 <View style={styles.roleContainer}>
                     <TouchableOpacity
-                        style={[styles.roleButton, selectedRole === 'user' && styles.roleButtonSelected]}
-                        onPress={() => setSelectedRole('user')}
+                        style={[styles.roleButton, selectedRole === UserRole.USER && styles.roleButtonSelected]}
+                        onPress={() => setSelectedRole(UserRole.USER)}
                     >
-                        <Text style={[styles.roleText, selectedRole === 'user' && styles.roleTextSelected]}>Пользователь</Text>
+                        <Text style={[styles.roleText, selectedRole === UserRole.USER && styles.roleTextSelected]}>Пользователь</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.roleButton, selectedRole === 'creator' && styles.roleButtonSelected]}
-                        onPress={() => setSelectedRole('creator')}
+                        style={[styles.roleButton, selectedRole === UserRole.CREATOR && styles.roleButtonSelected]}
+                        onPress={() => setSelectedRole(UserRole.CREATOR)}
                     >
-                        <Text style={[styles.roleText, selectedRole === 'creator' && styles.roleTextSelected]}>Создатель</Text>
+                        <Text style={[styles.roleText, selectedRole === UserRole.CREATOR && styles.roleTextSelected]}>Создатель</Text>
                     </TouchableOpacity>
                 </View>
                 {!selectedRole && <Text style={styles.errorText}>Необходимо выбрать роль</Text>}

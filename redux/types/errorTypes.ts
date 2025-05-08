@@ -9,4 +9,6 @@ export interface ErrorState {
     deleteAccountError: string | null,
     fetchUserSurveysError: string | null,
     fetchSurveyUser: string | null,
+    createSurveyError: string | null,
+    submitSurveyAnswerError: string | null,
 }

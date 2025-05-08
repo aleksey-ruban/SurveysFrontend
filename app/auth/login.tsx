@@ -1,7 +1,7 @@
 import { Controller, useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { loginUser } from "../../redux/slices/authSlice";
+import { loadUserFromStorage, loginUser } from "../../redux/slices/authSlice";
 import { TextInput, TouchableOpacity, View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
@@ -10,6 +10,7 @@ import { useAppSelector } from "@/hooks/useAppSelector";
 import { useEffect } from "react";
 import { clearLoginError } from "@/redux/slices/errorSlice";
 import { loginSchema } from "./validationSchema";
+import { RootState, store } from "@/redux/store";
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -31,6 +32,21 @@ export default function LoginScreen() {
             router.push("/");
         }
     };
+
+    useEffect(() => {
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                router.push('/');
+            }
+        };
+        loadAndCheckUser();
+    }, [dispatch]);
 
     useEffect(() => {
         dispatch(clearLoginError());

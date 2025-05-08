@@ -1,4 +1,5 @@
 import { Survey } from '@/redux/types/surveysTypes';
+import { mediaURL } from '@/utils/api';
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, View, Image, StyleSheet } from 'react-native';
 
@@ -20,7 +21,7 @@ const SurveyCard: React.FC<SurveyCardProps> = ({ survey, onPress }) => {
     useEffect(() => {
         if (imageUrl && !loadError) {
             setLoading(true);
-            Image.prefetch(imageUrl)
+            Image.prefetch(`${mediaURL}${imageUrl}`)
                 .then(() => setLoading(false))
                 .catch(() => {
                     setLoading(false);
@@ -32,8 +33,7 @@ const SurveyCard: React.FC<SurveyCardProps> = ({ survey, onPress }) => {
     }, [imageUrl, loadError]);
 
     const isImgUrl = survey?.imageUrl !== undefined
-    const imageSource = !isImgUrl || loadError || loadingImage || (survey?.imageUrl === null) ? placeholderImage : { uri: imageUrl };
-
+    const imageSource = !isImgUrl || loadError || loadingImage || (survey?.imageUrl === null) ? placeholderImage : { uri: `${mediaURL}${imageUrl}` };
     return (
         <TouchableOpacity style={styles.surveyItem} onPress={onPress}>
             <View style={styles.imageContainer}>

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from 'expo-router';
 import { View, Text, FlatList, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Button } from "react-native";
-import { deleteAccount, logout, } from "../../redux/slices/authSlice";
+import { deleteAccount, loadUserFromStorage, logout, logoutUser, } from "../../redux/slices/authSlice";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { fetchUserSurveys } from "@/redux/slices/surveySlice";
 import { clearFetchUserSurveysError } from "@/redux/slices/errorSlice";
 import UserSurveyCard from "@/components/UserSurveyCard";
+import { store } from "@/redux/store";
+import { UserRole } from "@/redux/types/authTypes";
 
 const UserProfile = () => {
     const dispatch = useAppDispatch();
@@ -21,23 +23,62 @@ const UserProfile = () => {
     }, [dispatch]);
 
     useEffect(() => {
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                if (authState.user !== null) {
+                    if (authState.user.role == UserRole.CREATOR) {
+                        router.push('/creator');
+                    } else if (authState.user.role == UserRole.USER) {
+                        return;
+                    }
+                } else {
+                    router.push({
+                        pathname: '/',
+                        params: { wishPath: 'user/profile' },
+                    });
+                }
+            } else {
+                router.push('/auth/login');
+            }
+        };
+
+        loadAndCheckUser();
+    }, [dispatch]);
+
+    useEffect(() => {
         dispatch(clearFetchUserSurveysError());
         return () => {
             dispatch(clearFetchUserSurveysError());
         };
     }, [dispatch]);
 
-    const handleLogout = () => {
-        dispatch(logout());
-        router.push('/auth/login');
+    const handleLogout = async () => {
+        try {
+            let result = await dispatch(logoutUser());
+            if (logoutUser.fulfilled.match(result)) {
+                router.push('/auth/login');
+            }
+        } catch (error) {
+            console.error("Ошибка выхода:", error);
+        }
     };
 
-    const handleDeleteAccount = () => {
+
+    const handleDeleteAccount = async () => {
         const confirmation = window.confirm("Вы уверены, что хотите удалить аккаунт? Это действие необратимо.");
 
         if (confirmation) {
-            dispatch(deleteAccount());
-            handleLogout();
+            const result = await dispatch(deleteAccount());
+            if (deleteAccount.fulfilled.match(result)) {
+                dispatch(logout());
+                router.push('/auth/login');
+            }
         } else {
             console.log("Удаление аккаунта отменено.");
         }

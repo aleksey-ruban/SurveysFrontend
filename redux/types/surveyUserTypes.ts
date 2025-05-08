@@ -19,7 +19,6 @@ export interface SurveyUserResult {
 
 export interface Answer {
     id: number;
-    type: QuestionType;
     answer: AnswerData;
 }
 
@@ -30,21 +29,17 @@ export type AnswerData =
     | RatingAnswer;
 
 export interface TextAnswer {
-    type: QuestionType.TEXT;
     answer: string;
 }
 
 export interface SingleChoiceAnswer {
-    type: QuestionType.SINGLE_CHOICE;
-    options: string | null;
+    option: string | null;
 }
 
 export interface MultipleChoiceAnswer {
-    type: QuestionType.MULTIPLE_CHOICE;
     options: string[];
 }
 
 export interface RatingAnswer {
-    type: QuestionType.RATING;
     scale: number; 
 }

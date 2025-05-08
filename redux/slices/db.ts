@@ -7,7 +7,9 @@ export const surveys: Survey[] = [
         title: "Обратная связь о качестве сервиса",
         description: "Ваше мнение поможет нам стать лучше!",
         isAnonymous: true,
+        userContact: "Телефон",
         isClosed: false,
+        imageUrl: "https://png.pngtree.com/thumb_back/fw800/background/20230610/pngtree-picture-of-a-blue-bird-on-a-black-background-image_2937385.jpg",
         questions: [
             {
                 id: 1,
@@ -20,14 +22,14 @@ export const surveys: Survey[] = [
                 type: QuestionType.SINGLE_CHOICE,
                 questionText: "Как вы узнали о нас?",
                 required: true,
-                options: ["Реклама", "Совет друга", "Случайно наткнулся"]
+                options: [{text: "Реклама"}, {text: "Совет друга"}, {text: "Случайно наткнулся"}]
             },
             {
                 id: 3,
                 type: QuestionType.MULTIPLE_CHOICE,
                 questionText: "Какими функциями вы чаще всего пользуетесь?",
                 required: false,
-                options: ["Поиск", "Отзывы", "Фильтры", "Личный кабинет"]
+                options: [{text: "Поиск"}, {text: "Отзывы"}, {text: "Фильтры"}, {text: "Личный кабинет"}]
             },
             {
                 id: 4,
@@ -67,20 +69,21 @@ export const surveys: Survey[] = [
         description: "Помогите нам оценить обновленный дизайн",
         isAnonymous: true,
         isClosed: true, // Опрос уже завершён
+        imageUrl: "https://png.pngtree.com/thumb_back/fw800/background/20230610/pngtree-picture-of-a-blue-bird-on-a-black-background-image_2937385.jpg",
         questions: [
             {
                 id: 1,
                 type: QuestionType.SINGLE_CHOICE,
                 questionText: "Как вам новый дизайн?",
                 required: true,
-                options: ["Отличный", "Хороший", "Нейтральный", "Плохой"]
+                options: [{text: "Отличный"}, {text: "Хороший"}, {text: "Нейтральный"}, {text: "Плохой"}]
             },
             {
                 id: 2,
                 type: QuestionType.MULTIPLE_CHOICE,
                 questionText: "Какие элементы дизайна вам понравились?",
                 required: false,
-                options: ["Шрифты", "Цветовая схема", "Иконки", "Удобство навигации"]
+                options: [{text: "Шрифты"}, {text: "Цветовая схема"}, {text: "Иконки"}, {text: "Удобство навигации"}]
             }
         ]
     },
@@ -102,14 +105,14 @@ export const surveys: Survey[] = [
                 type: QuestionType.SINGLE_CHOICE,
                 questionText: "Как вы узнали о нас?",
                 required: true,
-                options: ["Реклама", "Совет друга", "Случайно наткнулся"]
+                options: [{text: "Реклама"}, {text: "Совет друга"}, {text: "Случайно наткнулся"}]
             },
             {
                 id: 3,
                 type: QuestionType.MULTIPLE_CHOICE,
                 questionText: "Какими функциями вы чаще всего пользуетесь?",
                 required: false,
-                options: ["Поиск", "Отзывы", "Фильтры", "Личный кабинет"]
+                options: [{text: "Поиск"}, {text: "Отзывы"}, {text: "Фильтры"}, {text: "Личный кабинет"}]
             },
             {
                 id: 4,
@@ -155,14 +158,14 @@ export const surveys: Survey[] = [
                 type: QuestionType.SINGLE_CHOICE,
                 questionText: "Как вам новый дизайн?",
                 required: true,
-                options: ["Отличный", "Хороший", "Нейтральный", "Плохой"]
+                options: [{text: "Отличный"}, {text: "Хороший"}, {text: "Нейтральный"}, {text: "Плохой"}]
             },
             {
                 id: 2,
                 type: QuestionType.MULTIPLE_CHOICE,
                 questionText: "Какие элементы дизайна вам понравились?",
                 required: false,
-                options: ["Шрифты", "Цветовая схема", "Иконки", "Удобство навигации"]
+                options: [{text: "Шрифты"}, {text: "Цветовая схема"}, {text: "Иконки"}, {text: "Удобство навигации"}]
             }
         ]
     },
@@ -184,14 +187,14 @@ export const surveys: Survey[] = [
                 type: QuestionType.SINGLE_CHOICE,
                 questionText: "Как вы узнали о нас?",
                 required: true,
-                options: ["Реклама", "Совет друга", "Случайно наткнулся"]
+                options: [{text: "Реклама"}, {text: "Совет друга"}, {text: "Случайно наткнулся"}]
             },
             {
                 id: 3,
                 type: QuestionType.MULTIPLE_CHOICE,
                 questionText: "Какими функциями вы чаще всего пользуетесь?",
                 required: false,
-                options: ["Поиск", "Отзывы", "Фильтры", "Личный кабинет"]
+                options: [{text: "Поиск"}, {text: "Отзывы"}, {text: "Фильтры"}, {text: "Личный кабинет"}]
             },
             {
                 id: 4,
@@ -237,14 +240,14 @@ export const surveys: Survey[] = [
                 type: QuestionType.SINGLE_CHOICE,
                 questionText: "Как вам новый дизайн?",
                 required: true,
-                options: ["Отличный", "Хороший", "Нейтральный", "Плохой"]
+                options: [{text: "Отличный"}, {text: "Хороший"}, {text: "Нейтральный"}, {text: "Плохой"}]
             },
             {
                 id: 2,
                 type: QuestionType.MULTIPLE_CHOICE,
                 questionText: "Какие элементы дизайна вам понравились?",
                 required: false,
-                options: ["Шрифты", "Цветовая схема", "Иконки", "Удобство навигации"]
+                options: [{text: "Шрифты"}, {text: "Цветовая схема"}, {text: "Иконки"}, {text: "Удобство навигации"}]
             }
         ]
     }

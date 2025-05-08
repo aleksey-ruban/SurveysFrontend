@@ -1,16 +1,33 @@
+import { useAppDispatch } from '@/hooks/useAppDispatch';
+import { useAppSelector } from '@/hooks/useAppSelector';
+import { loadUserFromStorage, logoutUser } from '@/redux/slices/authSlice';
+import { RootState } from '@/redux/store';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
 
 const SurveyCreatorHeader = () => {
     const router = useRouter();
+    
+    const dispatch = useAppDispatch();
 
     const handleHomePress = () => {
         router.push('/creator');
     };
 
-    const handleLogoutPress = () => {
-        router.push('/auth/login');
+    useEffect(() => {
+        dispatch(loadUserFromStorage());
+    }, [dispatch]);
+
+    const handleLogoutPress = async () => {
+        try {
+            let result = await dispatch(logoutUser());
+            if (logoutUser.fulfilled.match(result)) {
+                router.push('/auth/login');
+            }
+        } catch (error) {
+            console.error("Ошибка выхода:", error);
+        }
     };
 
     return (

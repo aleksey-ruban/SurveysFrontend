@@ -1,12 +1,19 @@
-import React, { useState } from "react";
-import { View, ScrollView, Text, TextInput, Switch, Image, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, Text, TextInput, Switch, Image, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import { MultipleChoiceQuestion, Question, QuestionType, RatingQuestion, SingleChoiceQuestion, Survey, TextQuestion } from "../../redux/types/surveysTypes";
 import { useDispatch } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
-import { addSurvey } from "../../redux/slices/surveySlice";
+import { createSurveyRequest } from "../../redux/slices/surveySlice";
 import { useRouter } from "expo-router";
 import Select from "react-select";
-import api from "@/utils/api";
+import api, { baseURL } from "@/utils/api";
+import { loadUserFromStorage } from "@/redux/slices/authSlice";
+import { useAppDispatch } from "@/hooks/useAppDispatch";
+import { RootState, store } from "@/redux/store";
+import { UserRole } from "@/redux/types/authTypes";
+import { useAppSelector } from "@/hooks/useAppSelector";
+import axios from "axios";
+import { clearCreateSurveyError } from "@/redux/slices/errorSlice";
 
 const CreateSurveyScreen = () => {
     const [title, setTitle] = useState("");
@@ -16,13 +23,44 @@ const CreateSurveyScreen = () => {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [selectedQuestion, setSelectedQuestion] = useState<null | QuestionType>(null);
 
-    const dispatch = useDispatch();
+    const createSurveyError = useAppSelector((state) => state.error.createSurveyError);
+
+    const dispatch = useAppDispatch();
     const router = useRouter();
+
+    useEffect(() => {
+        const loadAndCheckUser = async () => {
+            let authState = store.getState().auth;
+            if (authState.token == null) {
+                const resultAction = await dispatch(loadUserFromStorage());
+                authState = store.getState().auth;
+            }
+
+            if (authState.token !== null) {
+                if (authState.user !== null) {
+                    if (authState.user.role == UserRole.CREATOR) {
+                        return;
+                    } else if (authState.user.role == UserRole.USER) {
+                        router.push('/user');
+                    }
+                } else {
+                    router.push({
+                        pathname: '/',
+                        params: { wishPath: 'creator/create' },
+                    });
+                }
+            } else {
+                router.push('/auth/login');
+            }
+        };
+
+        loadAndCheckUser();
+    }, [dispatch]);
 
     const handleSelectChange = (selectedOption: any) => {
         if (selectedOption) {
             handleAddQuestion(selectedOption.value as QuestionType);
-            setSelectedQuestion(null); // Сбрасываем выбранное значение
+            setSelectedQuestion(null);
         }
     };
 
@@ -34,30 +72,30 @@ const CreateSurveyScreen = () => {
                 id: questions.length + 1,
                 type: QuestionType.TEXT,
                 questionText: "",
-                required: false,
+                required: true,
             };
         } else if (type === QuestionType.SINGLE_CHOICE) {
             newQuestion = {
                 id: questions.length + 1,
                 type: QuestionType.SINGLE_CHOICE,
                 questionText: "",
-                required: false,
-                options: [""],
+                required: true,
+                options: [{ text: "" }],
             };
         } else if (type === QuestionType.MULTIPLE_CHOICE) {
             newQuestion = {
                 id: questions.length + 1,
                 type: QuestionType.MULTIPLE_CHOICE,
                 questionText: "",
-                required: false,
-                options: [""],
+                required: true,
+                options: [{ text: "" }],
             };
         } else {
             newQuestion = {
                 id: questions.length + 1,
                 type: QuestionType.RATING,
                 questionText: "",
-                required: false,
+                required: true,
                 scale: 5,
             };
         }
@@ -86,8 +124,8 @@ const CreateSurveyScreen = () => {
         setQuestions(questions.filter(q => q.id !== id));
     };
 
-    const handleSubmit = () => {
-
+    const handleSubmit = async () => {
+        dispatch(clearCreateSurveyError());
         if (!title.trim()) {
             alert('Название опроса не может быть пустым');
             return;
@@ -105,7 +143,7 @@ const CreateSurveyScreen = () => {
 
             if (
                 (question.type === QuestionType.SINGLE_CHOICE || question.type === QuestionType.MULTIPLE_CHOICE) &&
-                question.options.some((option) => !option.trim())
+                question.options.some((option) => !option.text.trim())
             ) {
                 alert(`Вопрос "${question.questionText}" имеет пустой вариант`);
                 return;
@@ -128,8 +166,12 @@ const CreateSurveyScreen = () => {
             imageUrl: uploadedUrl ? uploadedUrl : undefined,
         };
         console.log(newSurvey);
-        dispatch(addSurvey(newSurvey));
-        // router.push("/creator");
+        let result = await dispatch(createSurveyRequest(newSurvey));
+        if (createSurveyRequest.fulfilled.match(result)) {
+            if (result.payload) {
+                router.push("/creator");
+            }
+        }
     };
 
     const getQuestionTypeLabel = (type: QuestionType) => {
@@ -162,36 +204,66 @@ const CreateSurveyScreen = () => {
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsEditing: true,
             quality: 1,
         });
 
         if (!result.canceled) {
+            setUploadedUrl(null);
             setImage(result.assets[0].uri);
             uploadImage(result.assets[0].uri);
         }
     };
 
+    const authState = useAppSelector((state: RootState) => state.auth);
 
     const uploadImage = async (uri: string) => {
         setUploading(true);
         setError(null);
 
         const formData = new FormData();
-        formData.append("image", {
-            uri,
-            name: "upload.jpg",
-            type: "image/jpeg",
-        } as any);
+
+        const isDataUrl = uri.startsWith('data:image');
+        
+        if (isDataUrl) {
+            const base64Data = uri.split(',')[1];
+        
+            const mimeType = uri.match(/data:(image\/[a-zA-Z]*);base64/);
+            const fileType = mimeType ? mimeType[1] : 'image/jpeg';
+        
+            const blob = await fetch(`data:${fileType};base64,${base64Data}`).then(res => res.blob());
+            const file = new File([blob], `image.${fileType.split('/')[1]}`, { type: fileType });
+        
+            formData.append('image', file);
+        } else {
+            const filename = uri.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename ?? '');
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+        
+            formData.append('image', {
+                uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+                name: filename,
+                type,
+            } as any);
+        }
 
         try {
-            // const response = await api.post("/upload", formData, {
-            //     headers: { "Content-Type": "multipart/form-data" },
-            // });
-            // setUploadedUrl(response.data.imageUrl);
-            
-            setUploadedUrl("https://armap-design.ru/img/135152");
+            const token = authState.token;
+
+            if (!token) {
+                throw new Error("Нет токена");
+            }
+
+            const api1 = axios.create({
+                baseURL: baseURL,
+                headers: { Authorization: `Token ${token}`, },
+                timeout: 4000,
+                withCredentials: true,
+            });
+
+            const response = await api1.post("/creators/upload", formData);
+            setUploadedUrl(response.data.imageUrl);
         } catch (error) {
             setError("Ошибка загрузки изображения");
             console.error(error);
@@ -262,10 +334,10 @@ const CreateSurveyScreen = () => {
                                                 <TextInput
                                                     style={styles.optionInput}
                                                     placeholder={`Вариант ${index + 1}`}
-                                                    value={option}
+                                                    value={option.text}
                                                     onChangeText={(text) => {
                                                         const newOptions = [...item.options];
-                                                        newOptions[index] = text;
+                                                        newOptions[index] = {text: text};
                                                         handleUpdateQuestion(item.id, { options: newOptions });
                                                     }}
                                                 />
@@ -288,7 +360,7 @@ const CreateSurveyScreen = () => {
                                     <TouchableOpacity
                                         style={styles.addOptionButton}
                                         onPress={() => {
-                                            const newOptions = [...item.options, ""];
+                                            const newOptions = [...item.options, {text: ""}];
                                             handleUpdateQuestion(item.id, { options: newOptions });
                                         }}
                                     >
@@ -357,6 +429,7 @@ const CreateSurveyScreen = () => {
                 <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                     <Text style={styles.submitText}>Создать опрос</Text>
                 </TouchableOpacity>
+                {createSurveyError && <Text style={styles.errorText}>{createSurveyError}</Text>}
             </View>
         </ScrollView>
     );
@@ -375,6 +448,7 @@ const styles = StyleSheet.create({
         width: "50%",
         minWidth: 400,
         flexGrow: 1,
+        marginBottom: 300,
     },
     header: {
         fontSize: 24,
@@ -426,7 +500,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         alignItems: "center",
         marginTop: 20,
-        marginBottom: 200,
+        marginBottom: 16,
     },
     submitText: {
         color: "#fff",
@@ -508,7 +582,7 @@ const styles = StyleSheet.create({
         marginVertical: 10,
         borderWidth: 1,
         borderColor: "#ddd",
-        borderRadius: 5, 
+        borderRadius: 5,
         backgroundColor: "#fff",
         width: "100%",
         alignSelf: "center",
@@ -525,7 +599,7 @@ const styles = StyleSheet.create({
     },
     image: {
         width: "90%",
-        aspectRatio: 5/3,
+        aspectRatio: 5 / 3,
         borderRadius: 10,
         marginVertical: 20,
     },
@@ -538,6 +612,12 @@ const styles = StyleSheet.create({
         color: "red",
         fontSize: 14,
         marginTop: 10,
+    },
+    errorText: {
+        color: 'red',
+        fontSize: 14,
+        fontWeight: 500,
+        marginTop: 0,
     },
 });
 

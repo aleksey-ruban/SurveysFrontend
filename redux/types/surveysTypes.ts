@@ -35,17 +35,21 @@ export interface TextQuestion extends BaseQuestion {
 
 export interface SingleChoiceQuestion extends BaseQuestion {
     type: QuestionType.SINGLE_CHOICE;
-    options: string[];
+    options: Option[];
 }
 
 export interface MultipleChoiceQuestion extends BaseQuestion {
     type: QuestionType.MULTIPLE_CHOICE;
-    options: string[];
+    options: Option[];
 }
 
 export interface RatingQuestion extends BaseQuestion {
     type: QuestionType.RATING;
     scale: number;
+}
+
+export interface Option {
+    text: string
 }
 
 export type Question = TextQuestion | SingleChoiceQuestion | MultipleChoiceQuestion | RatingQuestion;
