@@ -1,6 +1,7 @@
 import axios from "axios";
+import Constants from 'expo-constants';
 
-const domain = "http://10.0.1.28";
+const domain = Constants.expoConfig?.extra?.API_DOMAIN;
 export const baseURL = `${domain}:8000/api/`;
 export const mediaURL: string = `${domain}:8000/media/uploads/`;
 
