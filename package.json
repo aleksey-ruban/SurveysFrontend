@@ -51,7 +51,8 @@
     "react-native-webview": "13.12.5",
     "react-redux": "^9.2.0",
     "react-select": "^5.10.1",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "@expo/webpack-config": "18.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

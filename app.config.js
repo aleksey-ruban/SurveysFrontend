@@ -20,7 +20,7 @@ export default {
         web: {
             bundler: "metro",
             output: "single",
-            favicon: "./assets/images/favicon.png"
+            favicon: "./assets/images/logo.png"
         },
         plugins: [
             "expo-router",
@@ -38,7 +38,8 @@ export default {
             typedRoutes: true
         },
         extra: {
-            API_DOMAIN: process.env.API_DOMAIN
+            API_DOMAIN: process.env.API_DOMAIN,
+            FRONT_DOMAIN: process.env.FRONT_DOMAIN
         },
     }
 }

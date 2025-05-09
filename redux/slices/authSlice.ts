@@ -5,6 +5,7 @@ import { AuthState, LoginPayload, RegisterPayload, User, UserRole } from "../typ
 import axios from "axios";
 import { setDeleteAccountError, setLoginError, setRegisterError, setResetPasswordError } from "./errorSlice";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 const initialState: AuthState = {
     isAuthenticated: false,
@@ -105,7 +106,7 @@ export const loginUser = createAsyncThunk(
             };
         } catch (error) {
             let errorMessage = "Ошибка авторизации";
-
+            console.log(error);
             if (axios.isAxiosError(error) && error.response) {
                 errorMessage = error.response.data["error"] || "Ошибка сервера";
             }
